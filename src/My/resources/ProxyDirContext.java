@@ -8,6 +8,7 @@ import javax.naming.Binding;
 import javax.naming.Context;
 import javax.naming.Name;
 import javax.naming.NameClassPair;
+import javax.naming.NameNotFoundException;
 import javax.naming.NameParser;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
@@ -93,7 +94,7 @@ public class ProxyDirContext implements DirContext{
     /**
      * Non cacheable resources.
      */
-    protected String[] nonCacheable = { "/WEB-INF/lib/", "/WEB-INF/classes/" };
+    protected String[] nonCacheable = { "/MyResource/lib/", "/MyResource/classes/" };
     
     
 	// -------------------------- Public Methods --------------------------
@@ -124,6 +125,15 @@ public class ProxyDirContext implements DirContext{
                 return entry.context;
             }
 		}
+		
+		Object object = dirContext.lookup(name);
+		if (object instanceof InputStream) {
+            return new Resource((InputStream) object);
+        } else if (object instanceof DirContext) {
+            return object;
+        } else if (object instanceof Resource) {
+            return object;
+        } 
 		return null;
 	}
 	
@@ -174,7 +184,6 @@ public class ProxyDirContext implements DirContext{
                 exists = false;
             }
         }
-        
         
         // Retriving object
         if ((exists) && (entry.resource == null) && (entry.context == null)) {
@@ -227,7 +236,6 @@ public class ProxyDirContext implements DirContext{
                 }
         	}
         }
-    	
         
         // Set existence flag
         entry.exists = exists;
@@ -243,6 +251,28 @@ public class ProxyDirContext implements DirContext{
         	}
         }
     }
+    
+    
+    
+    /**
+     * Retrieves all of the attributes associated with a named object.
+     * 
+     * @return the set of attributes associated with name
+     * @param name the name of the object from which to retrieve attributes
+     * @exception NamingException if a naming exception is encountered
+     */
+    public Attributes getAttributes(String name) throws NamingException {
+		CacheEntry entry = cacheLookup(name);
+		if (entry != null) {
+			if (!entry.exists) {
+				throw new NameNotFoundException();
+			}
+			return entry.attributes;
+		}
+		
+		Attributes attributes = dirContext.getAttributes(name);
+		return attributes;
+	}
 	
 
 	@Override
@@ -419,11 +449,7 @@ public class ProxyDirContext implements DirContext{
 		return null;
 	}
 
-	@Override
-	public Attributes getAttributes(String name) throws NamingException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	
 
 	@Override
 	public Attributes getAttributes(Name name, String[] attrIds)

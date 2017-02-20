@@ -1,6 +1,7 @@
 package My.resources;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Hashtable;
@@ -640,7 +641,12 @@ public class FileDirContext extends BaseDirContext{
         public InputStream streamContent()
             throws IOException {
         	
-        	return null;
+        	if (binaryContent == null) {
+        		FileInputStream fis = new FileInputStream(file);
+                inputStream = fis;
+                return fis;
+        	}
+        	return super.streamContent();
         }
     }
 	

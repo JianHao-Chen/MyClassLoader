@@ -68,6 +68,18 @@ public class ResourceAttributes implements Attributes{
     	
     	return 0;
     }
+    
+    /**
+     * Get last modified time.
+     * 
+     * @return lastModified time value
+     */
+    public long getLastModified() {
+    	if (lastModified != -1L)
+            return lastModified;
+    	
+    	return lastModified;
+    }
 
 	@Override
 	public boolean isCaseIgnored() {

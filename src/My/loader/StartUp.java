@@ -7,6 +7,8 @@ public class StartUp {
 		
 		WebappLoader loader = new WebappLoader();
 		loader.start();
+		
+		loader.loopForCommandLine();
 	}
 
 }

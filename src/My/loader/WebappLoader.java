@@ -3,6 +3,8 @@ package My.loader;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Hashtable;
 import java.util.Scanner;
 
@@ -14,6 +16,10 @@ import My.resources.FileDirContext;
 import My.resources.ProxyDirContext;
 
 public class WebappLoader implements Loader{
+	
+	
+	private static final String AbsoluteClassPath = 
+		"C:\\workspace helios\\MyClassLoader\\MyResource\\classes";
 
 	// ------------------- Constructors ------------------- 
 	/**
@@ -96,19 +102,60 @@ public class WebappLoader implements Loader{
     	}
     }
     
+    public void stop(){
+    	classLoader.stop();
+    }
+    
     
     public void loopForCommandLine(){
     	Scanner s = new Scanner(System.in);
     	while(true){
     		System.out.println("input the class name you want to load:");
-    		 String line = s.nextLine(); 
-    		 if (line.equals("exit")) break; 
-    		 handleRequest(line);
+    		String line = s.nextLine(); 
+    		if (line.equals("exit")) 
+    			break;
+    		else if(line.equals("reload")){
+    			stop();
+    			start();
+    		}
+    			
+    		
+    		handleRequest(line);
     	}
     }
     
     public void handleRequest(String line){
-    	
+    	line = "HelloWorld.class";
+    	Class<?> clazz = null;
+    	try {
+    		 
+    		clazz = getClassLoader().loadClass(line);
+			
+		} catch (ClassNotFoundException e) {
+			System.out.println("Class "+line+" Not Found");
+		}
+		
+		try{
+			// run main function of the class we load
+			Method method = 
+				clazz.getDeclaredMethod("main", String[].class);
+			String[] args = new String[2];
+			args[0] = "123";
+			args[1] = "456";
+			method.invoke(null,(Object)new String[]{"abc","efg"});
+		}
+		catch(NoSuchMethodException e){
+			System.out.println("No Such Method ");
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
     
     
@@ -197,7 +244,7 @@ public class WebappLoader implements Loader{
     	
     	if (classes != null) {
     		File classRepository = null;
-    		String absoluteClassesPath = "";
+    		String absoluteClassesPath = AbsoluteClassPath;
     		if (absoluteClassesPath != null) {
     			classRepository = new File(absoluteClassesPath);
     		}

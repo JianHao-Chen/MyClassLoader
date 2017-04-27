@@ -9,7 +9,7 @@ public class testSameClass {
 		FileSystemClassLoader fscl1 = new FileSystemClassLoader(classDataRootPath); 
 	    FileSystemClassLoader fscl2 = new FileSystemClassLoader(classDataRootPath); 
 	    
-	    String className = "HelloWorld";
+	    String className = "java.lang.Object";
 	    
 	    try {
 	    	/*ClassLoader parentLoader = fscl1.getParent();

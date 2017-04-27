@@ -31,11 +31,7 @@ public class ClassNotFoundException_NoClassDefFoundError {
 	    	Class<?> class1 = fscl1.loadClass(className);
 	    	ClassLoader loader1 = class1.getClassLoader();
 	    	Object obj1 = class1.newInstance();
-	    	
-	    	Method m = class1.getDeclaredMethod("callAFun", null);
-	    	m.invoke(obj1, null);
-	    	
-	    	
+	
 	    }
 	    catch (Exception e) { 
 	        e.printStackTrace(); 

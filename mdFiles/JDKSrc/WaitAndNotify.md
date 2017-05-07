@@ -1,3 +1,13 @@
+---
+title: Object的wait()方法
+categories: JDK源码
+---
+
+这篇文章会介绍Object的wait()方法。
+<!--more-->
+
+---
+
 ## Object的wait()方法
 
 ###### 这个方法的几个要点：
@@ -11,11 +21,10 @@
 4. 执行wait()方法的线程进入对象A的等待队列并释放已获取的monitor锁，注意，仅仅是释放对象A的monitor锁，而线程T获取到的其他对象的monitor锁，仍然保持。
 
 5. <font color=green>对象A的wait()方法使得当前线程(称作T),把自己放到对象A的等待队列中,并且释放已获取的monitor锁。线程T变成不可调度的(处于休眠),直到以下3种情况之一发生:</font>
+  * 某个线程执行对象A的notify()方法，并且线程T刚好被选中来唤醒
+  * 某个线程执行对象A的notifyAll()方法
+  * 某个线程执行T的interrupt()方法
 
-
-  * 某个线程执行对象A的notify()方法，并且线程T刚好被选中来唤醒。
-  * 某个线程执行对象A的notifyAll()方法。
-  * 某个线程执行T的interrupt()方法</br></br>
   随后,线程T被移出对象A的等待队列,并且可以重新参加调度。</br>
 
   <font color=red>注意：</font></br>

@@ -1,18 +1,28 @@
+---
+title: 线程的状态
+categories: JDK源码
+---
+
+这篇文章会介绍线程的几种状态。
+<!--more-->
+
+---
+
 ## 线程的状态
 
 在给定的一个时刻,线程只能处于其中的一个状态:
 
-1. <font color=green>NEW</font> <br/>
+1. <font color=green>NEW</font>
   初始状态,线程被创建,但是还没有调用start()方法。
-2. <font color=green>RUNNABLE</font> <br/>
+2. <font color=green>RUNNABLE</font>
   运行状态,Java线程将操作系统中的就绪和运行2种状态笼统称作"运行中"。
-3. <font color=green>BLOCKED</font> <br/>
+3. <font color=green>BLOCKED</font>
   阻塞状态,表示线程阻塞于锁。
-4. <font color=green>WAITING</font> <br/>
+4. <font color=green>WAITING</font>
   等待状态,表示线程进入等待状态，进入该状态表示当前线程需要等待其他线程,做出一些特定的动作(通知或中断)。
-5. <font color=green>TIME_WAITING</font> <br/>
+5. <font color=green>TIME_WAITING</font>
   超时等待状态,该状态不同于 WAITING,它是可以在指定的时间自行返回的。
-6. <font color=green>TERMINATED</font> <br/>
+6. <font color=green>TERMINATED</font>
   终止状态,表示线程已经执行完毕。
 
 <br/>
@@ -22,16 +32,16 @@
 
 1. <font color=blue>NEW -> RUNNABLE</font> ：  Thread.start()
 
-2. <font color=blue>RUNNING -> READY</font> ： Thread.yield()<br/>
+2. <font color=blue>RUNNING -> READY</font> ： Thread.yield()
 <font color=blue>READY -> RUNNING</font> ： 系统调度
 
-3. <font color=blue>RUNNABLE -> WAITING</font> ： Object.wait()  || Object.join() <br/>
+3. <font color=blue>RUNNABLE -> WAITING</font> ： Object.wait()  || Object.join()
 <font color=blue>WAITING -> RUNNABLE</font> ： Object.notify() || Object.notifyAll()
 
-4. <font color=blue>RUNNABLE -> TIME_WAITING</font> ： Thread.sleep() || Object.wait(long)<br/>
+4. <font color=blue>RUNNABLE -> TIME_WAITING</font> ： Thread.sleep() || Object.wait(long)
 <font color=blue>TIME_WAITING -> RUNNABLE</font> ： Object.notify() || Object.notifyAll()
 
-5. <font color=blue>RUNNABLE -> BLOCKED</font> ： 等待进入synchronized块/方法<br/>
+5. <font color=blue>RUNNABLE -> BLOCKED</font> ： 等待进入synchronized块/方法
 <font color=blue>BLOCKED -> RUNNABLE</font> ： 获取到锁 <br/><br/><br/>
 
 

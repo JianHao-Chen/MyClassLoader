@@ -1,6 +1,6 @@
 ---
 title: 成员内部类
-categories: JDK源码
+categories: Java笔记
 ---
 
 以下2个问题，你可以回答出来吗：

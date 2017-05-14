@@ -1,6 +1,6 @@
 ---
 title: 匿名内部类
-categories: JDK源码
+categories: Java笔记
 ---
 
 问题: 匿名内部类只能访问局部final变量,为什么？

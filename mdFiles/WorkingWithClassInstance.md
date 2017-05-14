@@ -1,6 +1,6 @@
 ---
 title: 静态内部类
-categories: JDK源码
+categories: Java笔记
 ---
 
 提出问题：

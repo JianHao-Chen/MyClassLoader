@@ -1,6 +1,6 @@
 ---
 title: 方法调用的字节码
-categories: JDK源码
+categories: Java笔记
 ---
 
 本文将探讨Java中方法调用的相关字节码，根据方法性质的不同，将会调用不同的字节码指令哦。

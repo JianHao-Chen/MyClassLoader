@@ -1,6 +1,6 @@
 ---
 title: synchronized 对应的字节码
-categories: JDK源码
+categories: Java笔记
 ---
 
 根据synchronized关键字的用法不同，生成的字节码也有不同哦。

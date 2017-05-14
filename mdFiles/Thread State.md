@@ -1,6 +1,6 @@
 ---
 title: 线程的状态
-categories: JDK源码
+categories: Java笔记
 ---
 
 这篇文章会介绍线程的几种状态。

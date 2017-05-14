@@ -1,6 +1,6 @@
 ---
 title: 创建数组
-categories: JDK源码
+categories: Java笔记
 ---
 
 本文介绍几个与创建数组有关的字节码。

@@ -1,6 +1,6 @@
 ---
 title: Java自定义类加载器
-categories: JDK源码
+categories: Java笔记
 ---
 
 本文展示一个自定义类加载器的例子(例子来源于IBM developerworks上的文章)。

@@ -1,6 +1,6 @@
 ---
 title: Thread的几个方法
-categories: JDK源码
+categories: Java笔记
 ---
 
 这篇文章简单介绍Thread的几个方法。

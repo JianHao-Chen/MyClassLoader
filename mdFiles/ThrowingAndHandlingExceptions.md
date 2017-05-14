@@ -1,6 +1,6 @@
 ---
 title: Java异常处理的字节码
-categories: JDK源码
+categories: Java笔记
 ---
 
 本文对Java中一些简单的异常处理的字节码进行分析。

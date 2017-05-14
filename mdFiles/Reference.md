@@ -1,6 +1,6 @@
 ---
 title: JAVA的引用
-categories: JDK源码
+categories: Java笔记
 ---
 
 JAVA中对象的引用有四种，它们由高到低依次为: 强引用、软引用、弱引用和虚引用。

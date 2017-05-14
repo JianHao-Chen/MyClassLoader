@@ -1,6 +1,6 @@
 ---
 title: Java注解
-categories: JDK源码
+categories: Java笔记
 ---
 
 本文首先展示一个比较简单的Java注解例子，然后分析这个注解的一些字节码。

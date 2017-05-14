@@ -1,6 +1,6 @@
 ---
 title: ArrayList的序列化
-categories: JDK源码
+categories: Java笔记
 ---
 
 在ArrayList的代码中，它的elementData被transient修饰,本文将分析ArrayList是如何序列化的。

@@ -1,3 +1,8 @@
+---
+title: IO模型
+categories: 计算机基础
+---
+
 ## 同步与异步
 
 同步和异步关注的是消息通信机制(synchronous communication / asynchronous communication)。

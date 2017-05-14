@@ -1,6 +1,6 @@
 ---
 title: ClassNotFoundException和NoClassDefFoundError
-categories: JDK源码
+categories: Java笔记
 ---
 
 提出问题：
@@ -30,6 +30,60 @@ categories: JDK源码
 
 这个说法是否对呢？
 
-我以下面的例子来探讨。
 
-#### 
+
+#### 产生ClassNotFoundException
+产生ClassNotFoundException很容易，只要待加载的类在类加载器的查找路径中没有找到，就会抛出ClassNotFoundException。
+
+
+#### 产生NoClassDefFoundError
+先创建以下2个类：
+
+```bash
+public class A {
+}
+
+public class B extends A{
+}
+```
+对于生成的A.class， B.class，我们只把B.class放到C盘根目录下， 然后使用自定义的类加载器加载B类：
+
+```bash
+public void testNoClassDefFoundError(){
+  String classDataRootPath = "C:";
+  FileSystemClassLoader fscl1 = new FileSystemClassLoader(classDataRootPath);
+  String className = "B";
+  
+  try {
+    Class<?> class1 = fscl1.loadClass(className);
+  }
+  catch (Exception e) {
+    e.printStackTrace();
+  }
+}
+```
+FileSystemClassLoader会先在C盘根目录下查找B.class文件，找到并得到B.class的字节数组，然后会调用defineClass()方法生成相应的Class对象。
+在defineClass()中需要加载B的父类A，会再次调用FileSystemClassLoader的loadClass()方法，但是这次会找不到A类了，从而抛出ClassNotFoundException。这会导致defineClass()方法抛出NoClassDefFoundError。
+
+
+还有以下例子展示产生NoClassDefFoundError:
+创建类B在Test包下：
+```bash
+package Test;
+
+public class B {
+}
+```
+把生成的B.class文件放在C盘根目录下，然后使用FileSystemClassLoader加载。同样，在defineClass()方法抛出异常：
+```bash
+Exception in thread "main" java.lang.NoClassDefFoundError: B (wrong name: Test/B)
+    at java.lang.ClassLoader.defineClass1(Native Method)
+    at java.lang.ClassLoader.defineClass(Unknown Source)
+    at java.lang.ClassLoader.defineClass(Unknown Source)
+    at Learning.Sample.FileSystemClassLoader.findClass(FileSystemClassLoader.java:53)
+    ....
+```
+
+结论是，我认为这个说法是对的
+> 方法 loadClass()抛出的是 java.lang.ClassNotFoundException异常；
+方法 defineClass()抛出的是 java.lang.NoClassDefFoundError异常。

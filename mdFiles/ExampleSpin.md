@@ -1,6 +1,6 @@
 ---
 title: Java For循环的字节码
-categories: JDK源码
+categories: Java笔记
 ---
 
 本文将介绍Java For循环的实现是使用了什么字节码指令。

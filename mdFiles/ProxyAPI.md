@@ -1,6 +1,6 @@
 ---
 title: JDK动态代理
-categories: JDK源码
+categories: Java笔记
 ---
 
 动态代理，就是在运行期中，遵循Java编译系统组织.class文件的格式和结构，生成相应的二进制数据，然后再把这个二进制数据加载转换成对应的类。

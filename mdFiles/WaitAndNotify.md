@@ -1,6 +1,6 @@
 ---
 title: Object的wait()方法
-categories: JDK源码
+categories: Java笔记
 ---
 
 这篇文章会介绍Object的wait()方法。

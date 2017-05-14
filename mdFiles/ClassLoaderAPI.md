@@ -1,6 +1,6 @@
 ---
 title: ClassLoader
-categories: JDK源码
+categories: Java笔记
 ---
 
 本文将介绍JDK源码中java.lang.ClassLoader的一些原理和API。

@@ -1,6 +1,6 @@
 ---
 title: ThreadLocal是否会引发内存泄露的问题
-categories: JDK源码
+categories: Java笔记
 ---
 
 网上有观点认为使用ThreadLocal会造成内存泄露的问题，那到底事实是不是这样的呢？

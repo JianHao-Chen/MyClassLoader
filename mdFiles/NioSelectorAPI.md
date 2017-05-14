@@ -1,6 +1,6 @@
 ---
 title: Selector的API
-categories: JDK源码
+categories: Java笔记
 ---
 
 这篇文章会介绍NIO中Selector的API。

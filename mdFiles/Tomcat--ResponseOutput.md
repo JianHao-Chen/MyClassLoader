@@ -96,7 +96,6 @@ public void close()throws IOException {
   ...
   coyoteResponse.finish();
 }
-
 ```
 这里coyoteResponse就是与Http11NioProcessor关联的那一个，并不是用于容器的那一个。
 
@@ -115,13 +114,156 @@ public void close()throws IOException {
 
 
 #### OutputBuffer的doFlush()方法
-doFlush()方法主要做3件事：
+doFlush()方法分为2步：
 
-1) 调用coyoteResponse的sendHeaders()，把HTTP Response的状态行和Header写到 InternalNioOutputBuffer 的 buf[]数组中。
+1) 将HTTP Response的状态行和Header写到 socket的buffer
+2) 将HTTP Response的 Body 部分写到 socket的buffer
+
+先说说1)的具体过程：
+调用coyoteResponse的sendHeaders()，把HTTP Response的状态行和Header写到 InternalNioOutputBuffer 的 buf[]数组中。
 
  * coyoteResponse有一个hook属性，是一个指向Http11NioProcessor的引用。
  * Http11NioProcessor的outputBuffer属性就是 InternalNioOutputBuffer 对象。
 
+InternalNioOutputBuffer通过 sendStatus()方法，把状态行的字节数组写入自己的buf[]数组里面：
+```bash
+public void sendStatus() {
+  // 通过System.arraycopy()方法，写入“HTTP/1.1”的字节数组
+  write(Constants.HTTP_11_BYTES);
+  buf[pos++] = Constants.SP;
+  
+  // Write status code
+  int status = response.getStatus();
+  switch (status) {
+  case 200:
+        write(Constants._200_BYTES);
+        break;
+  case 400:
+        write(Constants._400_BYTES);
+        break;
+  case 404:
+        write(Constants._404_BYTES);
+        break;
+  default:
+        write(status);
+  }
+  buf[pos++] = Constants.SP;
+  
+  
+  // Write message
+  ...
+}
+```
+
+同样道理，对header的写入如下：
+```bash
+...
+MimeHeaders headers = response.getMimeHeaders();
+...
+int size = headers.size();
+for (int i = 0; i < size; i++) {
+  outputBuffer.sendHeader(headers.getName(i), headers.getValue(i));
+}
+outputBuffer.endHeaders();
+```
+outputBuffer(即InternalNioOutputBuffer)的sendHeader()方法：
+```bash
+public void sendHeader(MessageBytes name, MessageBytes value) {
+  write(name);
+  buf[pos++] = Constants.COLON;
+  buf[pos++] = Constants.SP;
+  write(value);
+  buf[pos++] = Constants.CR;
+  buf[pos++] = Constants.LF;
+}
+```
+
+2)的具体过程：
+接下来就是将已经保存在InternalNioOutputBuffer的buf[]数组data写入socket关联的buffer里面。
+
+通过调用InternalNioOutputBuffer的addToBB()方法，这个方法就是对Java Nio的 ByteBuffer的写入：
+```bash
+private synchronized void addToBB(byte[] buf, int offset, int length) throws IOException {
+
+  while (length > 0) {
+    int thisTime = length;
+    if (socket.getBufHandler().getWriteBuffer().position() ==
+        socket.getBufHandler().getWriteBuffer().capacity()
+        || socket.getBufHandler().getWriteBuffer().remaining()==0) {
+        flushBuffer();
+    }
+    if (thisTime > socket.getBufHandler().getWriteBuffer().remaining()) {
+      thisTime = socket.getBufHandler().getWriteBuffer().remaining();
+    }
+    socket.getBufHandler().getWriteBuffer().put(buf, offset, thisTime);
+    length = length - thisTime;
+    offset = offset + thisTime;
+    total += thisTime;
+  }
+  NioEndpoint.KeyAttachment ka = (NioEndpoint.KeyAttachment)socket.getAttachment(false);
+  if ( ka!= null ) ka.access();
+}
+```
+
+到此，HTTP Response的状态行和Header已经写入socket的buffer了。
+接着，就是处理HTTP Response的Body部分。
+
+前面说过，Body部分正保存在OutputBuffer中，OutputBuffer调用coyoteResponse的doWrite()方法，这个方法又会调用InternalNioOutputBuffer的doWrite()方法，最后还是调用前面提到过的addToBB()方法：
+```bash
+public int doWrite(ByteChunk chunk, Response res) 
+  throws IOException {
+  int len = chunk.getLength();
+  int start = chunk.getStart();
+  byte[] b = chunk.getBuffer();
+  addToBB(b, start, len);
+  return chunk.getLength();
+}
+```
+
+
+#### coyoteResponse的finish()方法
+此时，一个完整的HTTP Response已经写入到socket关联的buffer里面了，coyoteResponse的finish()方法就负责将这个buffer的data发送到客户端。
+
+coyoteResponse的finish()方法，会通过Http11NioProcessor调用 InternalNioOutputBuffer的flushBuffer()方法：
+```bash
+protected void flushBuffer() throws IOException {
+  ...
+  if (socket.getBufHandler().getWriteBuffer().position() > 0) {
+    socket.getBufHandler().getWriteBuffer().flip();
+    writeToSocket(socket.getBufHandler().getWriteBuffer(),true, false);
+  }
+}
+```
+
+对于ByteBuffer的写入后的读取，使用flip()方法这一步，是NIO Buffer的基础。
+
+在看writeToSocket()方法之前，先说说NioSelectorPool的事情。
+InternalNioOutputBuffer中有这么一个field：
+```bash
+protected NioSelectorPool pool;
+```
+这个field是由Http11NioProcessor的process()方法为它赋值的(在读取socket数据之前)。
+```bash
+public SocketState process(NioChannel socket) throws IOException {
+  ...
+  this.socket = socket;
+  inputBuffer.setSocket(socket);
+  outputBuffer.setSocket(socket);
+  inputBuffer.setSelectorPool(endpoint.getSelectorPool());
+  outputBuffer.setSelectorPool(endpoint.getSelectorPool());
+  ...    
+}
+```
+
+这个NioSelectorPool就是为了处理当向客户端写Response网络状态不好时的情况。因此，这个writeToSocket()方法通过NioSelectorPool的write()方法写Response，至于这里NioSelectorPool的具体逻辑，已经另外写了一篇博文来介绍。
+
+到此，Http Response已经成功写到socket。
+
+
+
+
+
+ 
 
 
 

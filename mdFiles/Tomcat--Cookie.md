@@ -111,3 +111,44 @@ public void addCookieInternal(final Cookie cookie, final boolean httpOnly) {
 2. parseSessionCookiesId()方法从coyoteRequest中取得Cookies(先把它叫serverCookies)，然后调用Cookies的processCookies(MimeHeaders headers)方法。这个方法就是从headers中解析出Cookie，并保存到serverCookies里面。
 3. headers是MimeHeaders类型的,其中保存着MimeHeaderField类型的数组,每一个MimeHeaderField就是request header的一个键值对。
 4. 首先在headers 中找出键值为"Cookie"的MimeHeaderField,做一些检查,然后就把Cookie添加到serverCookies。“添加”的具体是：在serverCookies下的ServerCookie[]数组中添加一项,然后设置这个新的ServerCookie的名字(如"phone") 和值(如"123456")
+
+
+## 对Cookie的获取
+在自定义的Servlet中，获取Cookie的代码如下：
+```bash
+Cookie[] cookies = request.getCookies();
+```
+下面对request.getCookies()的执行过程进行分析：
+1. RequestFacade的getCookies()，调用了Request的getCookies()方法
+2. getCookies()方法调用parseCookies()方法，我认为这个函数做的就是从“serverCookies”到Cookie的转换。
+
+这个parseCookies()方法：
+```bash
+Cookies serverCookies = coyoteRequest.getCookies();
+int count = serverCookies.getCookieCount();
+if (count <= 0)
+  return;
+  
+cookies = new Cookie[count];
+int idx=0;
+for (int i = 0; i < count; i++) {
+  ServerCookie scookie = serverCookies.getCookie(i);
+  try {
+    Cookie cookie = new Cookie(scookie.getName().toString(),null);
+    int version = scookie.getVersion();
+    cookie.setVersion(version);
+    cookie.setValue(unescape(scookie.getValue().toString()));
+    cookie.setPath(unescape(scookie.getPath().toString()));
+    ...
+    cookies[idx++] = cookie;
+  }
+  catch(IllegalArgumentException e) {
+    // Ignore bad cookie
+  }
+  if( idx < count ) {
+    Cookie [] ncookies = new Cookie[idx];
+    System.arraycopy(cookies, 0, ncookies, 0, idx);
+    cookies = ncookies;
+  }
+}
+```

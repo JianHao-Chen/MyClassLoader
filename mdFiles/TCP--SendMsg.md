@@ -36,3 +36,41 @@ TCP把自己要发送的数据流里的每一个字节都看成一个序号，�
 
 ## TCP发送消息的流程
 
+<img src="http://img.blog.csdn.net/20170521220516677">
+
+上图分为10步：
+(1) 应用程序试图调用send方法来发送一段较长的数据
+
+(2) 内核主要通过tcp_sendmsg方法来完成。
+
+(3) 把用户需要发送的用户态内存中的数据，拷贝到内核态内存中。
+A. 拷贝到内核态内存,是为了不依赖于用户态内存，也使得进程可以快速释放发送数据占用的用户态内存。
+B. 这个拷贝操作并不是简单的复制，而是把待发送数据，按照MSS来划分成多个尽量达到MSS大小的分片报文段，复制到内核中的sk_buff结构来存放，同时把这些分片组成队列，放到这个TCP连接对应的tcp_write_queue发送队列中。
+
+(4) 内核中为这个TCP连接分配的内核缓存是有限的.当没有多余的内核态缓存来复制用户态的待发送数据时，就需要调用一个方法sk_stream_wait_memory来等待滑动窗口移动，释放出一些缓存出来（收到ACK后，不需要再缓存原来已经发送出的报文，因为既然已经确认对方收到，就不需要定时重发，自然就释放缓存了）。
+```bash
+wait_for_memory:  
+  if (copied)  
+    tcp_push(sk, tp, flags & ~MSG_MORE, mss_now, TCP_NAGLE_PUSH);
+    
+  if ((err = sk_stream_wait_memory(sk, &timeo)) != 0)  
+    goto do_error;  
+```
+sk_stream_wait_memory方法接受一个参数timeo，就是等待超时的时间 ,这个时间是 tcp_sendmsg 方法刚开始就拿到的，如下：
+```bash
+timeo = sock_sndtimeo(sk, flags & MSG_DONTWAIT);
+```
+看看其实现：
+```bash
+static inline long sock_sndtimeo(const struct sock *sk, int noblock) {  
+  return noblock ? 0 : sk->sk_sndtimeo;  
+}
+```
+当这个套接字是阻塞套接字时，timeo就是SO_SNDTIMEO选项指定的发送超时时间。
+当这个套接字是非阻塞套接字，timeo变量就会是0。
+sk_stream_wait_memory会直接返回，并将 errno错误码置为EAGAIN。
+
+
+(5) 
+
+

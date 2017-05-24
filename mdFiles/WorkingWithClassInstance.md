@@ -1,5 +1,5 @@
 ---
-title: 静态内部类
+title: 类实例的传递、返回和类实例属性的访问
 categories: Java笔记
 ---
 

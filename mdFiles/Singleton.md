@@ -1,5 +1,5 @@
 ---
-title: Java单例模式的8种写法
+title: Java单例模式的7种写法
 categories: Java笔记
 ---
 

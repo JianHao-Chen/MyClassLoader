@@ -203,6 +203,51 @@ protected void cacheLoad(CacheEntry entry) {
 
 ## 移除失效缓存
 
+补充一个场景：
+例如我请求一个index.html文件，在Mapper组件中，当然会map到Default servlet。同时，也会通过ProxyDirContext寻找名为“/index.html”。代码如下：
+```bash
+// Rule 7 -- Default servlet
+if (mappingData.wrapper == null && !checkJspWelcomeFiles) {
+  if (context.defaultWrapper != null) {
+    mappingData.wrapper = context.defaultWrapper.object;
+    mappingData.requestPath.setChars
+      (path.getBuffer(), path.getStart(), path.getLength());
+    mappingData.wrapperPath.setChars
+      (path.getBuffer(), path.getStart(), path.getLength());
+  }
+  
+  // Redirection to a folder
+  char[] buf = path.getBuffer();
+  if (context.resources != null && buf[pathEnd -1 ] != '/') {
+    Object file = null;
+    String pathStr = path.toString();
+    try {
+      file = context.resources.lookup(pathStr);
+    } catch(NamingException nex) {
+      // Swallow, since someone else handles the 404
+    }
+    
+    if (file != null && file instanceof DirContext) {
+    // Note: this mutates the path: do not do any processing 
+    // after this (since we set the redirectPath, there 
+    // shouldn't be any)
+    path.setOffset(pathOffset);
+    path.append('/');
+    mappingData.redirectPath.setChars
+      (path.getBuffer(), path.getStart(), path.getLength());
+    } else {
+        mappingData.requestPath.setString(pathStr);
+        mappingData.wrapperPath.setString(pathStr);
+      }
+    }
+}
+
+path.setOffset(pathOffset);
+path.setEnd(pathEnd);
+```
+如果这个html文件被修改过，那么当ProxyDirContext的cacheLookup()方法，会检测到entry的有效性，从而
+调用cacheUnload()方法。然后，再次访问时，ProxyDirContext的cacheLookup()方法会再次从磁盘上读取文件并加载入缓存。
+
 #### 检查，判断entry是否失效
 在前面ProxyDirContext的cacheLookup()方法中，调用了validate()，revalidate()方法进行检查Entry的有效性。
 

@@ -66,10 +66,10 @@ public class Util {
 }
 ```
 运行Util的process()方法分析Demo的注解，得到结果:
->方法m2的MyTag注解内容为：default_name，18，OFF
->方法m3的MyTag注解内容为：A，18，OFF
->方法m4的MyTag注解内容为：B，30，OFF
->方法m5的MyTag注解内容为：C，40，ON
+方法m2的MyTag注解内容为：default_name，18，OFF
+方法m3的MyTag注解内容为：A，18，OFF
+方法m4的MyTag注解内容为：B，30，OFF
+方法m5的MyTag注解内容为：C，40，ON
 
 
 ## 相关的字节码

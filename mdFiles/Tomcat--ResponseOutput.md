@@ -102,6 +102,7 @@ public void close()throws IOException {
 
 【补充】
 在这里，补充一下HTTP Response的格式：
+
 | http/版本|空格|状态码|空格|message|回车|换行|
 | ------------- |:-------------:|:-------------:| -----:|
 |HTTP/1.1||200||OK|

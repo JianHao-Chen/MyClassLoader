@@ -52,6 +52,7 @@ socket.getBufHandler().getReadBuffer().get(buf,pos,nRead);
 
 【补充】
 HTTP请求行的格式：
+
 | 请求方法|空格|URL|空格|协议版本|回车|换行|
 | ------------- |:-------------:|:-------------:| -----:|
 |GET/POST等方法||example/helloworld.html||HTTP/1.1|
@@ -113,6 +114,7 @@ while (space) {
 
 【补充】
 HTTP请求头的格式：
+
 | 头部字段名|：|值|回车|换行|
 | ------------- |:-------------:|:-------------:| -----:|
 |accept |:|text/html|||

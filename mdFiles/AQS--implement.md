@@ -190,14 +190,14 @@ final boolean acquireQueued(final Node node, int arg) {
 再看shouldParkAfterFailedAcquire(Node pred, Node node) 方法：
 ```bash
 private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
-  int ws = pred.waitStatus;
-  if (ws == Node.SIGNAL)
+  int s = pred.waitStatus;
+  if (s < 0)
     /*
     * This node has already set status asking a release
     * to signal it, so it can safely park.
     */
     return true;
-  if (ws > 0) {
+  if (s > 0) {
     /*
     * Predecessor was cancelled. Skip over predecessors and
     * indicate retry.
@@ -208,16 +208,132 @@ private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
     pred.next = node;
   } else {
       /*
-      * waitStatus must be 0 or PROPAGATE.  Indicate that we
-      * need a signal, but don't park yet.  Caller will need to
+      * Indicate that we need a signal, but don't park yet. Caller will need to
       * retry to make sure it cannot acquire before parking.
       */
-      compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
+      compareAndSetWaitStatus(pred, 0, Node.SIGNAL);
     }
   return false;
 }
 ```
 这个方法首先获取当前节点的前驱节点的状态，然后判断：
-1. 如果状态 == Node.SIGNAL
+1. 如果状态值 < 0 (即 Node.SIGNAL 或 Node.CONDITION 或 Node.PROPAGATE)
 那么就返回true，这就意味着当前线程将会被阻塞。
+2. 如果状态值 > 0 (即 Node.CANCELLED)
+前驱节点被取消了，跳过状态为CANCELLED的前驱节点(可能会多个)，并返回false，使得在外面的方法acquireQueued()中会重试获取同步状态。
+3. 如果状态值 = 0 (即 初始状态)
+将前驱节点的状态设置为 Node.SIGNAL ，然后返回 false，使得在外面的方法acquireQueued()中会重试获取同步状态。
+
+
+#### 同步器的release(int arg)方法
+通过调用同步器的release(int arg)方法，可以释放同步状态，该方法在释放了同步状态之后，会唤醒其后继节点（进而使后继节点重新尝试获取同步状态）。
+
+```bash
+public final boolean release(int arg) {
+  if (tryRelease(arg)) {
+    Node h = head;
+    if (h != null && h.waitStatus != 0)
+      unparkSuccessor(h);
+      return true;
+  }
+  return false;
+}
+```
+其中方法unparkSuccessor(Node node)就是用于选择当前节点的后继节点(如果存在)，然后调用LockSupport的unpark(Thread thread)方法唤醒后继节点。
+
+
+## 独占式超时获取同步状态、可中断获取同步状态
+
+在开始介绍超时获取同步状态之前，先介绍一下AQS的可中断的同步状态获取。因为超时获取是可中断获取的“加强版”。
+
+#### 可中断获取同步状态
+
+在Java 5之前，当一个线程获取不到锁而被阻塞在synchronized之外时，对该线程进行中断操作，此时该线程的中断标志位会被修改，但线程依旧会阻塞在synchronized上，等待着获取锁。
+
+在Java 5中，同步器提供了`acquireInterruptibly(int arg)`方法，这个方法在等待获取同步状态时，如果当前线程被中断，会立刻返回，并抛出InterruptedException。
+
+先看acquireInterruptibly(int arg)方法：
+```bash
+public final void acquireInterruptibly(int arg) throws InterruptedException {
+  if (Thread.interrupted())
+    throw new InterruptedException();
+  if (!tryAcquire(arg))
+    doAcquireInterruptibly(arg);
+}
+```
+然后看doAcquireInterruptibly(int arg)方法：
+```bash
+private void doAcquireInterruptibly(int arg) throws InterruptedException {
+  final Node node = addWaiter(Node.EXCLUSIVE);
+  try {
+    for (;;) {
+      final Node p = node.predecessor();
+      if (p == head && tryAcquire(arg)) {
+        setHead(node);
+        p.next = null; // help GC
+        return;
+      }
+      if (shouldParkAfterFailedAcquire(p, node) && parkAndCheckInterrupt())
+        break;
+    }
+  } catch (RuntimeException ex) {
+      cancelAcquire(node);
+      throw ex;
+  }
+  // Arrive here only if interrupted
+  cancelAcquire(node);
+  throw new InterruptedException();
+}
+```
+可以看到，这个方法与独占式获取同步状态(屏蔽中断)中的acquireQueued(final Node node, int arg)方法是十分相似的，不同之处在于：
+**这个方法在parkAndCheckInterrupt()检查完线程中断情况之后，会跳出这个“死循环”，对当前节点取消获取同步状态，抛出InterruptedException。**
+
+
+#### 超时获取同步状态
+
+通过调用同步器的`doAcquireNanos(int arg,long nanosTimeout)`方法可以超时获取同步状态，即在指定的时间段内获取同步状态，如果获取到同步状态则返回true，否则，返回false。该方法提供了传统Java同步操作（比如synchronized关键字）所不具备的特性。
+
+```bash
+private boolean doAcquireNanos(int arg, long nanosTimeout) throws InterruptedException {
+  long lastTime = System.nanoTime();
+  final Node node = addWaiter(Node.EXCLUSIVE);
+  try {
+    for (;;) {
+      final Node p = node.predecessor();
+      if (p == head && tryAcquire(arg)) {
+        setHead(node);
+        p.next = null; // help GC
+        return true;
+      }
+      if (nanosTimeout <= 0) {
+        cancelAcquire(node);
+        return false;
+      }
+      
+      if (nanosTimeout > spinForTimeoutThreshold && shouldParkAfterFailedAcquire(p, node))
+          LockSupport.parkNanos(this, nanosTimeout);
+          long now = System.nanoTime();
+          nanosTimeout -= now - lastTime;
+          lastTime = now;
+          if (Thread.interrupted())
+            break;
+    }
+  } catch (RuntimeException ex) {
+      cancelAcquire(node);
+      throw ex;
+    }
+  // Arrive here only if interrupted
+  cancelAcquire(node);
+  throw new InterruptedException();
+}
+```
+同样，这个方法与与可中断获取同步状态中的doAcquireInterruptibly(int arg)方法是十分相似的，不同之处在同步状态获取失败的处理上：
+
+如果当前线程获取同步状态失败，则判断是否超时（nanosTimeout小于等于0表示已经超时），如果没有超时，重新计算超时间隔nanosTimeout，然后使当前线程等待nanosTimeout纳秒（当已到设置的超时时间，该线程会从LockSupport.parkNanos(Objectblocker,long nanos)方法返回）。
+
+如果nanosTimeout小于等于spinForTimeoutThreshold（1000纳秒）时，将不会使该线程进行超时等待，而是进入快速的自旋过程。原因在于，非常短的超时等待无法做到十分精确，如果这时再进行超时等待，相反会让nanosTimeout的超时从整体上表现得反而不精确。因此，在超时非常短的场景下，同步器会进入无条件的快速自旋。
+
+
+
+
 

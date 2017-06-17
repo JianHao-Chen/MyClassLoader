@@ -102,9 +102,7 @@ public void conditionSignal() throws InterruptedException {
 public final void await() throws InterruptedException {
   if (Thread.interrupted())
     throw new InterruptedException();
-  // 当前线程加入等待队列
   Node node = addConditionWaiter();
-  // 释放同步状态，也就是释放锁
   int savedState = fullyRelease(node);
   int interruptMode = 0;
   while (!isOnSyncQueue(node)) {
@@ -120,12 +118,45 @@ public final void await() throws InterruptedException {
     reportInterruptAfterWait(interruptMode);
 }
 ```
-addConditionWaiter()方法就是在等待队列的尾部插入一个新建的Node节点，状态为 Node.CONDITION。
+await()方法做了以下几件事：
+1. addConditionWaiter()方法就是在等待队列的尾部插入一个新建的Node节点，状态为 Node.CONDITION。
+2. fullyRelease(Node node)方法释放同步状态并且唤醒后继节点的线程。
+3. 通过isOnSyncQueue(Node node)方法判断如果当前节点不在同步队列里面，就进入while循环中。在循环中，会通过LockSupport的park()方法将当前节点的线程挂起。如果这个线程(在一段时间后)被唤醒，首先检查是否被中断，如果是就跳出while循环。
+4. 后面就是获取同步状态(如果节点在同步队列)、清除在等待队列中被取消的节点(当前节点也是在等待队列中，被取消的)、处理中断。
 
-进入等待队列的情形如下图所示：
+我们看一下isOnSyncQueue(Node node)方法：
+```bash
+final boolean isOnSyncQueue(Node node) {
+  /*
+  * 情况一：
+  * 如果节点的状态是 CONDITION，或者节点的前驱节点为null,
+  * 表示该节点处于等待队列
+  */
+  if (node.waitStatus == Node.CONDITION || node.prev == null)
+    return false;
+  /*
+  * 情况二：
+  * 如果有后继节点，那么这个节点在同步队列里面
+  */
+  if (node.next != null) 
+    return true;
+  /*
+  * 情况三：
+  * node.prev != null，但该节点还没有处于同步队列里面。
+  */
+  return findNodeFromTail(node);    
+}
+```
+情况三产生原因：
+在transferForSignal(Node node)方法里面，会调用enq(final Node node)方法，这个方法在死循环中做了以下2件事：
+1. 设置node.prev = tail
+2. 通过CAS设置这个node为tail。
+
+问题就是CAS操作可能会失败(不过由于这2个操作是在死循环中，最终还是会成功的)。
+所以对于情况3，使用findNodeFromTail(Node node)方法，遍历同步队列查找这个node。
+
+  进入等待队列的情形如下图所示：
 <img src="http://img.blog.csdn.net/20170613180400249">
-
-
 
 
 #### 移出等待队列(唤醒)
@@ -154,12 +185,20 @@ private void doSignal(Node first) {
   } while (!transferForSignal(first) && (first = firstWaiter) != null);
 }
 ```
-doSignal()方法删除状态为 CANCELED 的节点，直到遇到一个不是 CANCELED 的节点。使用transferForSignal(Node node)方法将这个节点转移到同步队列，看看transferForSignal(Node node)方法：
+doSignal()方法在while循环中调用transferForSignal(Node node)方法，可以看到每次都是取出等待队列的头节点，将它作为参数传入transferForSignal方法。
+transferForSignal(Node node)方法用于将node节点转移到同步队列，看看transferForSignal(Node node)方法的实现：
 ```bash
 final boolean transferForSignal(Node node) {
-
+  // 如果不能成功设置这个节点的状态为0(初始状态)，
+  // 那么说明这个节点已经被取消了，目前状态为 CANCELLED
   if (!compareAndSetWaitStatus(node, Node.CONDITION, 0))
     return false;
+   
+  // 下面是将节点加入到同步队列，并且把这个节点的前驱节点的状态
+  // 设置为 Node.SIGNAL，令前驱节点释放同步状态时唤醒该节点。
+  // 如果前驱节点已经被取消了或设置它的状态失败，我们直接唤醒这个
+  // 节点的线程，(它会在之前的await()方法中的LockSupport.park(this)语句中醒来
+  // 并且会重新获取同步状态)。
   Node p = enq(node);
   int c = p.waitStatus;
   if (c > 0 || !compareAndSetWaitStatus(p, c, Node.SIGNAL))
@@ -167,7 +206,3 @@ final boolean transferForSignal(Node node) {
   return true;
 }
 ```
-
-
-
-

@@ -19,7 +19,7 @@ public class FileSystemClassLoader extends ClassLoader{
     } 
 	
 	public Class<?> loadClass(String name)throws ClassNotFoundException{
-		System.out.println("Current Loader :"+this);
+		System.out.println("Current Loader is:"+this+" ,it is loading "+name);
 		
 		Class c = findLoadedClass(name);
 		if (c == null) {
@@ -29,8 +29,14 @@ public class FileSystemClassLoader extends ClassLoader{
 				}
 			}
 			catch (ClassNotFoundException e) {
-				c = findClass(name);
+			    System.out.println("Class "+name+" no found by "+this.getParent());
 			}
+			
+			
+			    c = findClass(name);
+			
+			
+			
 		}
 		
 		return c;
@@ -42,7 +48,14 @@ public class FileSystemClassLoader extends ClassLoader{
             throw new ClassNotFoundException(); 
         } 
         else { 
-            return defineClass(name, classData, 0, classData.length); 
+            Class<?> clazz = null;
+            try{
+                clazz = defineClass(name, classData, 0, classData.length); 
+            }
+            catch(Exception e){
+                System.out.println("DefineClass error "+name);
+            }
+            return clazz;
         } 
 	}
 	

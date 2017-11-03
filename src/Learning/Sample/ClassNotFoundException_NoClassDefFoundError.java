@@ -22,7 +22,7 @@ public class ClassNotFoundException_NoClassDefFoundError {
 	 * 就报NoClassDefFoundError
 	 */
 	public void testNoClassDefFoundError(){
-		String classDataRootPath = "C:\\workspace helios\\MyClassLoader";
+		String classDataRootPath = "C:";
 		FileSystemClassLoader fscl1 = new FileSystemClassLoader(classDataRootPath); 
 	
 		String className = "B";
@@ -38,8 +38,39 @@ public class ClassNotFoundException_NoClassDefFoundError {
 	    }
 	}
 	
+	
+	public void testClassNotFoundException(){
+	    String classDataRootPath = "C:";
+	    FileSystemClassLoader fscl1 = new FileSystemClassLoader(classDataRootPath); 
+	    String className = "A";
+        
+        try {
+            Class<?> class1 = fscl1.loadClass(className);
+            ClassLoader loader1 = class1.getClassLoader();
+            Object obj1 = class1.newInstance();
+    
+        }
+        catch (Exception e) { 
+            e.printStackTrace(); 
+        }
+        
+        
+        FileSystemClassLoader fscl2 = new FileSystemClassLoader(classDataRootPath); 
+        
+        try {
+            Class<?> class1 = fscl2.loadClass(className);
+            ClassLoader loader1 = class1.getClassLoader();
+            Object obj1 = class1.newInstance();
+    
+        }
+        catch (Exception e) { 
+            e.printStackTrace(); 
+        }
+	}
+	
 	public static void main(String[] args){
 		ClassNotFoundException_NoClassDefFoundError c = new ClassNotFoundException_NoClassDefFoundError();
 		c.testNoClassDefFoundError();
+	//	c.testClassNotFoundException();
 	}
 }

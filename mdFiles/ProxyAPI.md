@@ -115,7 +115,7 @@ public static Object newProxyInstance(ClassLoader loader,Class<?>[] interfaces,
 动态代理真正的关键是在 getProxyClass 方法。
 
 </br>
-####  <font color=orange>※※ Proxy 的newProxyInstance方法 ※※</font>
+####  <font color=orange>※※ Proxy 的getProxyClass方法 ※※</font>
 该方法负责为一组接口动态地生成代理类类型对象。
 该方法总共可以分为四个步骤:
 
